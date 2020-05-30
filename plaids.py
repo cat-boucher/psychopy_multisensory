@@ -1,5 +1,5 @@
-from psychopy import visual, core, monitors  # import some libraries from PsychoPy
-import numpy as np
+from psychopy import visual, core, monitors 
+import PhotodiodeMarker as pdm
 
 class Plaids():
 
@@ -47,6 +47,9 @@ class Plaids():
 		clock = core.Clock()
 		t=0
 
+		marker = pdm.PhotodiodeMarker()
+
+
 		while t<self.pres_dur:
 			t = clock.getTime()
 		
@@ -54,6 +57,7 @@ class Plaids():
 			grating2.setPhase(self.freq2*t)
 			grating1.draw()
 			grating2.draw()
+			marker.draw_marker(self.mywin)
 			self.mywin.flip()
 
 		self.mywin.close()

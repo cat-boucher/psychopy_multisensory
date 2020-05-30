@@ -1,5 +1,6 @@
 from psychopy import visual, core, monitors # import libraries from Psychopy
 import numpy as np
+import PhotodiodeMarker as pdm #PhotodiodeMarker used to draw square in the corner
 
 class Checkerboard():
 
@@ -46,9 +47,14 @@ class Checkerboard():
 		frameN=0
 		numFrames = self.pres_dur*60 #pres_dur is in seconds. Multiply by 60 to get how many frames we need to present the stimulus for (assuming 60hz monitor.)
 
-		while frameN<=numFrames: 
+		marker = pdm.PhotodiodeMarker()
+		
+		while frameN<=numFrames:
 			if frameN % (2*self.flash_freq) < self.flash_freq:
 				stimulus.draw()
+			#	marker.draw_marker(self.mywin) #here, the marker only shows when the checkerboard is on
+
+			marker.draw_marker(self.mywin) 	 #here, the marker is on during the entire stimulus duration 
 			self.mywin.flip()
 			frameN += 1
 

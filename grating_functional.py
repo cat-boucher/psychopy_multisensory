@@ -1,5 +1,5 @@
-from psychopy import visual, core, monitors  # import some libraries from PsychoPy
-import numpy as np
+from psychopy import visual, core, monitors 
+import PhotodiodeMarker as pdm #Photodiode marker library
 
 class Grating():
 
@@ -8,7 +8,7 @@ class Grating():
 #text (texture) = sin
 #freq = n Hz -- how fast you want the grating to drift. NOTE: if -n then it will drift left
 
-	def __init__(self, cur_screen=0, cur_monitor="testMonitor", win_dim=[800,600], spatial_freq=.01, orientation=0, text='sin', grating_size=800, phase=(0.0,0.0), pres_dur=0.2, freq=-2):
+	def __init__(self, cur_screen=0, cur_monitor="testMonitor", win_dim=[800,600], spatial_freq=.01, orientation=0, text='sin', grating_size=800, phase=(0.0,0.0), pres_dur=10, freq=-2):
 		self.mywin=visual.Window(
 			size=win_dim, 
 			screen=cur_screen, 
@@ -32,10 +32,13 @@ class Grating():
 		clock = core.Clock()
 		t=0
 
+		marker = pdm.PhotodiodeMarker()
+
 		while t<self.pres_dur:
 			t = clock.getTime()
 			grating.setPhase(self.freq*t)
 			grating.draw()
+			marker.draw_marker(self.mywin)
 			self.mywin.flip()
 
 		self.mywin.close()

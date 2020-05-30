@@ -1,5 +1,5 @@
 from psychopy import visual, core, monitors # import libraries from Psychopy
-import numpy as np
+import PhotodiodeMarker as pdm
 
 #this stimulus draws a circular, radial checkerboard on the screen
 
@@ -18,8 +18,11 @@ class Radial_Checkerboard():
 
 		numFrames = self.stim_dur*60 #multiply stim_dur (seconds) by 60 to get number of frames we need to present the stimulus for (assuming 60 Hz monitor)
 
+		marker = pdm.PhotodiodeMarker()
+
 		for frame in range(numFrames):
 			stimulus.draw()
+			marker.draw_marker(self.mywin)
 			self.mywin.flip()
 
 
