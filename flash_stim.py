@@ -25,6 +25,8 @@ class Flash_Stim():
 		self.mywin.flip()
 		core.wait(self.pres_dur)
 
+		self.mywin.close()
+
 
 def main():
 	fl = Flash_Stim()
