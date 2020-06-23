@@ -9,7 +9,7 @@ import tdt
 # TODO: hard-coded in values for now...refactor as class to take lists as params. 
 
 #universal parameters
-numTrials = 100
+numTrials = 5
 ISI = [2, 3, 4, 5] #ISI in seconds
 
 #flash parameters
@@ -66,10 +66,11 @@ for i in range(0, numTrials):
 
 
 #making experimentHandler and trials
-exp = data.ExperimentHandler(name='testExp', savePickle=True, saveWideText=True, dataFileName='testExp')
+exp = data.ExperimentHandler(name='testExp', savePickle=True, saveWideText=True, dataFileName='testExper')
 
 trials = data.TrialHandler(trialList=trials_subset, nReps=1, method='sequential') # since already randomized we can go ahead and use "sequential" here...
 
+exp.addLoop(trials)
 
 #adding the data that we are collecting
 trials.data.addDataType('Auditory Response')
@@ -79,8 +80,12 @@ for trial in trials:
 	print(trial.items()) #access it like a dict!
 	if(trial['auditory_on']==True):
 		print("===Auditory component on===\n *Play tone at %d dB*\n" %trial['sound_levels'])
+	#	exp.addData()
+
 	
+	# should probably also set the auditory-related variables to 0 or None?
 	print("===No auditory===\n")
+#	exp.addData()
 	dur = trial['flash_dur'] #pres. dur.
 	lum = trial['luminance'] # luminance
 	inter=trial['ISI']
@@ -91,6 +96,9 @@ for trial in trials:
 
 	flash.flash(window)
 	window.flip()
+	core.wait(inter)
+
+	exp.nextEntry()
 			
 
 
