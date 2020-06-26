@@ -91,7 +91,8 @@ figure(f); delete(get(f,'children'));
 ind = binvec >= mwin(1) & binvec <= mwin(2); %index bins inside measurement window
 
 mPSTH = flipud(squeeze(mean(PSTH(:,:,ind),3))'); %get rid of third dimension (time), after averaging bins within measurement window = 1. average spk/s across bins for each Hz/dbSPL combo
-
+%Commented out: boxed version
+%{
 subplot(211)
 pcolor(uX,uY,mPSTH);%plots "chaotic" PSTH data into order
 set(gca,'ydir','normal');
@@ -101,18 +102,46 @@ title(gca,sprintf('Window = [%0.3f %0.3f]',mwin));
 xlabel('Frequency (kHZ)');
 ylabel('dBSPL');
 colorbar
+%}
 %%%%%%%add colorbar legend
 
-%
-subplot(212)
+figure;
+for k1=1:12
+    subplot(3, 4, k1)
+    mv = max(mPSTH(:)); %grabbing maximum value from mPSTH
+    cPSTH = interp2(mPSTH,3); %2d interpolation, halving intervals 3 times in each dimension. visually, produces further smoothing
+    imagesc(uX,uY,(cPSTH/max(cPSTH(:)))*mv); %normalization, max spike from smoothed data is same as raw data
+    set(gca,'ydir','normal');
+    set(gca,'clim',[0 mv]);
+    set(gca, 'xscale', 'log', 'xtick', uX(1:6:end), 'xticklabel', uX(1:6:end)/1e3, 'xlim', [uX(1),uX(end)]);
+    ch_label = sprintf('Channel %d', k1);
+    xL = xlim;
+    yL = ylim;
+    text(0.45,0.9, ch_label, 'Units','Normalized');
+    colorbar
+end
 
-mv = max(mPSTH(:)); %grabbing maximum value from mPSTH
-cPSTH = interp2(mPSTH,3); %2d interpolation, halving intervals 3 times in each dimension. visually, produces further smoothing
-imagesc(uX,uY,(cPSTH/max(cPSTH(:)))*mv); %normalization, max spike from smoothed data is same as raw data
-set(gca,'ydir','normal');
-set(gca,'clim',[0 mv]);
-set(gca, 'xscale', 'log', 'xtick', uX(1:6:end), 'xticklabel', uX(1:6:end)/1e3, 'xlim', [uX(1),uX(end)]);
-title(gca,sprintf('Window = [%0.3f %0.3f]',mwin));
+sgtitle(sprintf('Window = [%0.3f %0.3f]',mwin));
+
+%get positions to center the axis labels
+    a1=subplot(3,4,1); % top row, left corner
+    a2=subplot(3,4,4); % top row, right corner
+    a3 = subplot(3,4,9);% bottom row, left corner
+    a4 = subplot(3,4,12); % bottom row, right corner
+    
+    pos1=get(a1,'position');
+    pos2=get(a2,'position');
+    pos3=get(a3,'position');
+    pos4=get(a4,'position');
+    
+    height=pos1(2)+pos1(4)-pos4(2);
+    width=pos4(1)+pos4(3)-pos3(1);
+    a5=axes('position',[pos3(1) pos3(2) width height],'visible','off'); 
+    a5.XLabel.Visible='on'
+    a5.YLabel.Visible='on'
+    
+    axes(a5)
+
 xlabel('Frequency (kHZ)');
 ylabel('dBSPL');
-colorbar
+

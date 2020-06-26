@@ -89,7 +89,6 @@ block = '/Users/majamilinkovic/Documents/MATLAB/tdt/Froggy_14/Block-1'
         mPSTH = squeeze(mean(PSTH(:,:,ind),2)); %get rid of dimension, after averaging bins within measurement window into one
         shadedErrorBar(uX.',mPSTH.',{@mean,@(x) std(x)/sqrt(size(x, 1))},'lineprops',{'k-o','markerfacecolor','k'});
         %shadedErrorBar(uX.',mean(mPSTH,2),nanstd(mPSTH')/sqrt(41),'lineprops',{'k-o','markerfacecolor','k'});
-
         set(gca,'ydir','normal', 'ylim', [0, inf]);
         set(gca, 'xscale', 'log', 'xtick', uX(1:8:end), 'xticklabel', uX(1:8:end)/1e3, 'xlim', [uX(1),uX(end)]);
         junk=nanmean(mPSTH,2);
