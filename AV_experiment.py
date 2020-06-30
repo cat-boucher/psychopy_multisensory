@@ -2,7 +2,7 @@ from psychopy import data, visual, core, monitors
 import v2_flash_stim as fs2
 import random 
 import numpy as np
-import tdt
+import PhotodiodeMarker as pdm
 
 #TODO: change flash_dur -> frames, do so by looping for n frames (for frame in range 0 to n, win.flip()...)
 
@@ -25,8 +25,10 @@ class Experiment():
 
 		self.delay=delay #delay parameter to be read from TDT? Between presentation of auditory and visual stimulus. In ms
 
+		self.pre_stim = 8 # initial wait time before the stimulus presentation starts
+
 	#takes in window parameters which can be changed as needed; provides flexibility
-	def run_experiment(self, window_dim=[2560, 1600], screen_index=0, monitor_name="testMonitor"):
+	def run_experiment(self, window_dim=[800, 600], screen_index=0, monitor_name="testMonitor"):
 
 		#defining the window
 		window=visual.Window(size=window_dim, 
@@ -38,7 +40,7 @@ class Experiment():
 
 		#instantiate a generic flash stimulus; will set the specifics of the parameters (pres_dur, luminance) later when it is randomly decided in the loop.
 		flash = fs2.Flash_Stim(cur_screen=screen_index, cur_monitor=monitor_name, win_dim=window_dim, pres_dur=0, luminance=0)
-		flash.autoDraw=True
+	#	flash.autoDraw=True
 
 
 		#create a dictionary of all the parameters; factorially combine to get all possible options
@@ -70,6 +72,22 @@ class Experiment():
 
 		exp.addLoop(trials)
 
+
+	#	n_frames = self.pre_stim*60
+
+		marker = pdm.PhotodiodeMarker()
+
+		for n in range(0, self.pre_stim*60):
+			if n<10: #draw the marker for 10 frames
+				marker.draw_marker(window)
+			
+			#	print('marker')
+		#	else:
+			#	print("waiting")
+
+	#	print("Clearing")
+		window.flip()
+
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
 		for trial in trials:
 			inter=trial['ISI']
@@ -89,11 +107,16 @@ class Experiment():
 
 				flash.pres_dur=dur
 				flash.luminance=lum
+
+			
+
 				print("Luminance: ", lum)
 				#present the stimulus
 				flash.flash(window)
+				marker.draw_marker(window)
 				window.flip()
 				core.wait(inter)
+				window.flip()
 
 			elif(trial['stimulus']==2): #A+V stim
 				print("===Auditory and visual components on===\n *Play tone at %d dB*\n" %trial['wave_amp'])
@@ -102,11 +125,15 @@ class Experiment():
 
 				flash.pres_dur=dur
 				flash.luminance=lum
+
+
 				print("Luminance: ", lum)
 				#present the stimulus
 				flash.flash(window)
+				marker.draw_marker(window)
 				window.flip() #TODO: change to be timed by frame instead of seconds
 				core.wait(inter)
+				window.flip()
 
 			exp.nextEntry()
 
