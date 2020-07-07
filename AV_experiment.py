@@ -28,7 +28,11 @@ class Experiment():
 
 		self.delay=delay #Between presentation of auditory and visual stimulus within the trial. In ms
 
+		#timings within the code
 		self.pre_stim = 8 # initial wait time before the stimulus presentation starts
+		self.jitter = 0.250 #250 ms jitter
+
+
 
 	#takes in window parameters which can be changed as needed; provides flexibility
 	def run_experiment(self, window_dim=[800, 600], screen_index=0, monitor_name="testMonitor"):
@@ -82,25 +86,44 @@ class Experiment():
 
 		exp.addLoop(trials)
 
-
-	#	n_frames = self.pre_stim*60
-
 		marker = pdm.PhotodiodeMarker()
 
-		for n in range(0, self.pre_stim*60):
-			if n<10: #draw the marker for 10 frames
-				marker.draw_marker(window)
+	#	for n in range(0, self.pre_stim*60):
+	#		if n<10: #draw the marker for 10 frames
+	#			marker.draw_marker(window)
 			
-		window.flip()
+	#	window.flip()
+
+		#load values into the buffer before the trial starts...
+
+
+
+		#syn.setParameterValues('aStim2',)
+	#	print(dir(trials))
+		print(trials.nTotal)
+
 
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
 		for trial in trials:
 			inter=trial['ISI']
+
+			#initial marker flash 
+			for n in range(0, self.pre_stim*60):
+				if n<10: #draw the marker for 10 frames
+					marker.draw_marker(window)
+					
+			window.flip()
+
+			# jitter = wait time before first stimulus: 
+			core.wait(self.jitter) #jitter = 250 ms
+			time.sleep(.375) #maximum delay if presenting auditory before visual plus maybe 30-50% ~250ms + 125 = 375ms
+
 			if(CONNECT):
 					#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
 					syn.setParameterValue('aStim2', 'WaveAmp', trial['wave_amp'])
 					syn.setParameterValue('aStim2', 'WaveFreq', trial['wave_freq'])
 					syn.setParameterValue('aStim2', 'PulseDur', trial['pulse_dur'])
+					syn.setParameterValue('aStim2', 'StimID', trial['stimulus']+1) 
 
 
 			if(trial['stimulus']==0): #auditory stim only
@@ -132,9 +155,6 @@ class Experiment():
 				flash.flash(window)
 				marker.draw_marker(window)
 				window.flip()
-			#	core.wait(inter)
-			#	window.flip()
-
 
 
 			elif(trial['stimulus']==2): #A+V stim
@@ -159,8 +179,7 @@ class Experiment():
 					flash.flash(window)
 					marker.draw_marker(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
-				#	core.wait(inter)
-				#	window.flip()
+			
 
 				#option 2: Visual first: delay +
 				if(trial['delay'] > 0):
@@ -178,14 +197,13 @@ class Experiment():
 					flash.flash(window)
 					marker.draw_marker(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
-				#	core.wait(inter)
-				#	window.flip()
 
 					total_wait = trial['delay']+trial['pulse_dur'] # after visual presented, need to wait the delay btw stimuli + the duration of the audio pulse
 					core.wait(total_wait)
 
 
 				#option 3: Simultaneous: delay 0 
+				# TODO: add a second flash BEFORE the stimulus? 
 				if(trial['delay'] == 0):
 					print("===Auditory and visual components on===\n *Play tone at %d dB*\n" %trial['wave_amp'])
 					dur = trial['flash_dur'] #pres. dur.
@@ -199,13 +217,11 @@ class Experiment():
 					flash.flash(window)
 					marker.draw_marker(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
-				#	core.wait(inter)
-				#	window.flip()
+			
 
-				core.wait(inter) #inter stimulus interval = time between successive presentations
+				core.wait(inter-self.jitter) #inter stimulus interval = time between successive presentations
 				window.flip()
 
-			time.sleep(1) #not sure how much to sleep yet: maximum delay if presenting auditory before visual plus maybe 30-50%
 			exp.nextEntry()
 
 
