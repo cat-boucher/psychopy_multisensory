@@ -67,3 +67,40 @@ stims = {0: "auditory_only",
 exper = Experiment(numTrials=numTrials, ISI=ISI, flash_dur=flash_dur, luminance=luminance, wave_freq=freq,
 				   pulse_dur=duration, wave_amp=sound_levels, stimulus=stims)
 exper.run_experiment()
+
+
+
+
+
+# function to get all parameter info ahead of time from AV_experiment. tr_handler is the trial object from av_experiment ("trials", or any trialHandler type)
+# this fn allows us to access the variables in the trialHandler through synapse api
+def get_params(tr_handler): #param_list = list of the parameters of interest...ex.[]
+	n_trials = tr_handler.nTotal # total number of trials
+	#dictionary to store all the parameters as arrays ...(buffers)
+	params_dict = {"ISI": np.zeros(n_trials),
+					"flash_dur":  np.zeros(n_trials), #flash dur
+					"luminance":  np.zeros(n_trials), #luminance
+					"wave_freq": np.zeros(n_trials),
+					"pulse_dur":  np.zeros(n_trials), #pulse dur
+					"wave_amp" : np.zeros(n_trials),
+					"stimulus": np.zeros(n_trials),
+					"delay": np.zeros(n_trials)
+	}
+
+	for i in range(0, n_trials):
+		for key, value in params_dict.items():
+			params_dict[key][i] = tr_handler.trialList[i][key]
+
+	return params_dict #returns a parameter dict of all ISIs lined up, flash_dur, ...etc. 
+
+
+#function to write all parameters to the buffer in synapse, using the dict created in get_params
+def set_params(param_dict):
+
+	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'])
+	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq'])
+	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'])
+	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus']+1) 
+
+	#where to write the other params??
+

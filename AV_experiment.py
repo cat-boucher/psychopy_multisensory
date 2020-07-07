@@ -96,11 +96,8 @@ class Experiment():
 
 		#load values into the buffer before the trial starts...
 
-
-
-		#syn.setParameterValues('aStim2',)
-	#	print(dir(trials))
-		print(trials.nTotal)
+		for i in range(0, 3):
+			print(trials.trialList[i]['ISI'])
 
 
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
