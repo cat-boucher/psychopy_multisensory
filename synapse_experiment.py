@@ -2,19 +2,23 @@ import numpy as np
 import tdt
 #from AV_experiment import Experiment
 
-def syn_connect():
+def syn_connect(IP='192.168.1.37'):
 	# create Synapse API connection
-	syn = tdt.SynapseAPI('192.168.1.37')
+	syn = tdt.SynapseAPI(IP)
 
 	# switch into a runtime mode (Preview in this case)
 	if syn.getMode() < 1: syn.setMode(2)
+
+	return syn
+
+	
+def param_info():
 
 	gizmo_names = syn.getGizmoNames()
 
 	for gizmo in gizmo_names:
 		params = syn.getParameterNames(gizmo)
 	#doesnt get all parameters from gizmos i.e. WaveFreq
-
 
 	# get all info on the 'WaveFreq' parameter
 	GIZMO = 'aStim2'
@@ -79,18 +83,6 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 	n_trials = tr_handler.nTotal # total number of trials
 	#dictionary to store all the parameters as arrays ...(buffers)
 
-	"""
-	params_dict = {"ISI": np.zeros(n_trials),
-					"flash_dur":  np.zeros(n_trials, dtype=object), #flash dur
-					"luminance":  np.zeros(n_trials, dtype=object), #luminance
-					"wave_freq": np.zeros(n_trials, dtype=object),
-					"pulse_dur":  np.zeros(n_trials, dtype=object), #pulse dur
-					"wave_amp" : np.zeros(n_trials, dtype=object),
-					"stimulus": np.zeros(n_trials, dtype=object),
-					"delay": np.zeros(n_trials, dtype=object)
-	}
-	"""
-
 	params_dict = {"ISI": [],
 					"flash_dur":  [], #flash dur
 					"luminance":  [], #luminance
@@ -110,9 +102,9 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 	return params_dict #returns a parameter dict of all ISIs lined up, flash_dur, ...etc. 
 
 
-#function to write all parameters to the buffer in synapse, using the dict created in get_params
-def set_params(param_dict):
-	syn = tdt.SynapseAPI('192.168.1.37')
+#function to write all parameters from the buffer to the trial in synapse, using the dict created in get_params
+#use syn_connect to get the syn argument
+def set_params(param_dict, syn):
 	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'])
 	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq'])
 	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'])
