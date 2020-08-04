@@ -10,6 +10,7 @@ __pycache__/
 .Python
 build/
 .idea
+.DS_Store
 
 venv/
 develop-eggs/
