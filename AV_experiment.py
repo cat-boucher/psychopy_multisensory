@@ -5,35 +5,74 @@ import numpy as np
 import PhotodiodeMarker as pdm
 import time
 import tdt
-from synapse_experiment import get_params, set_params #, syn_connect
+from synapse_experiment import get_params, set_params, syn_connect
 
 
 class Experiment():
 	def __init__(self, numTrials=None, ISI=None, flash_dur=None, luminance=None, wave_freq=None,pulse_dur=None, wave_amp=None, stimulus=None, delay=None):
+		"""	
+		Experiment: class to run a multisensory integration experiment with custom timing and stimulus presentation.
+		-----------
 
-		self.numTrials=numTrials #number of trials
-		self.ISI=ISI #interstimulus interval (time btw flashes, in seconds, for the flash stimulus)
+		Attributes:
+		-----------
+		numTrials: int
+			number of trials in the experiment
+		ISI: float
+			interstimulus interval; time between flashes for the flash stimulus. (unit: seconds)
+
+		flash_dur: float
+			time each flash lasts (unit: ms)
+		luminance: 
+			color of the flash. input as list of 3 numbers from [-1, 1] where -1 is black, 1 is white (ex. [-1, 0, 1])
+		
+		wave_freq: float
+			frequency (Hz)
+		pulse_dur: float
+			length of pulse (ms)
+		wave_amp: float
+			volume of the sound (dB)
+		stimulus: 
+			dictionary: 0 (A only), 1 (V only) , or 2 (A+V)
+
+		delay: 
+			interstimulus delay between presentation of auditory and visual stimulus WITHIN the trial. Input in ms;  (-) A first, (+) V first 
+
+		JITTER: float
+			wait time before first stimulus (intrinsic delay). Hard-coded. (input in ms)
+		SYSTEM_DELAY: float
+			communication delay time between the 2 computers. Hard-coded value, measure + change in the lab. (input in ms)
+
+		Functions:
+		----------
+
+		"""
+
+		self.numTrials=numTrials 
+		self.ISI=ISI 
 
 		#flash stim specific
-		self.flash_dur = flash_dur #time each flash lasts; ms
-		self.luminance = luminance
+		self.flash_dur = flash_dur 
+		self.luminance = luminance 
 
 		#auditory stim. specific
-		self.wave_freq=wave_freq #frequency (Hz)
-		self.pulse_dur=pulse_dur #length of pulse (sound plays)
-		self.wave_amp=wave_amp #volume of the sound
-		self.stimulus=stimulus #boolean; determines whether there is an auditory component or not
+		self.wave_freq=wave_freq 
+		self.pulse_dur=pulse_dur 
+		self.wave_amp=wave_amp 
+		self.stimulus=stimulus 
 
-		self.delay=delay #Between presentation of auditory and visual stimulus within the trial. In ms
+		self.delay=delay 
 
 		#hard-coded timings within the code
-		self.pre_stim = 8 # initial wait time before the stimulus presentation starts (seconds)
-		self.jitter = 250  #250 ms jitter 
+		self.JITTER = 250.0  #250 ms jitter 
+		self.SYSTEM_DELAY = 200.0 # (temporary) 200 ms delay btw stimulus computer and recording computer. TODO: change this once the real timing is recorded in lab
 
 
-	# generates the random trials subset
-	def rand_trials(self):
-		#create a dictionary of all the parameters; factorially combine to get all possible options
+	
+	def rand_trials_sample(self):
+		"""
+		generates a randomized list of trial/stimulus parameters, of length numTrials
+		"""
 		factors={"ISI": self.ISI,
 				"flash_dur": self.flash_dur,
 				"luminance": self.luminance,
@@ -45,22 +84,29 @@ class Experiment():
 				}
 
 		stimList = data.createFactorialTrialList(factors)
-		 
-		randNs = random.sample(range(0, len(stimList)-1), self.numTrials) # generate random numbers equal to the # of trials
 
-		trials_subset = [None]*self.numTrials # since there are too many possiblilties we may only want a subset of them, so generate random numbers to choose which trials
-		for i in range(0, self.numTrials):
-			randNum = randNs[i]
-			trials_subset[i] = stimList[randNum]
-
-		return trials_subset
+		randSample = random.sample(stimList, self.numTrials)
+		return randSample
 
 
-
-	#takes in window parameters which can be changed as needed; provides flexibility
+	
 	def run_experiment(self, window_dim=[800, 600], screen_index=0, monitor_name="testMonitor"):
+		""" The main function that performs the stimulus presentation with synchronized timing
 
-		#temporary, just for testing bc i get errors since I dont have synapse. set to true if actually connecting to synapse
+		Args:
+		----
+		window_dim, screen_index, monitor_name: size, index, and name of stim presentation monitor. (see PsychoPy Window documentation for specifics)
+
+
+		Note:
+		----
+		- make sure to set CONNECT = True when actually connected to Synapse
+
+		- to make sure the code runs smoothly, best to comment out all print statements before running an experiment 
+
+		"""
+
+
 		CONNECT = False
 		if(CONNECT):
 			# Connect to Synapse & switch to preview mode
@@ -70,16 +116,16 @@ class Experiment():
 		window=visual.Window(size=window_dim, 
 			screen=screen_index, 
 			monitor=monitor_name, 
-			color=[0,0,0], 
+			color=[-1,-1,-1], 
 			units='pix'
 		)
 
-		#instantiate a generic flash stimulus; will set the specifics of the parameters (pres_dur, luminance) later when it is randomly decided in the loop.
+		#instantiate a generic flash stimulus; will set the specifics of the parameters (pres_dur, luminance) later in the loop.
 		flash = fs2.Flash_Stim(cur_screen=screen_index, cur_monitor=monitor_name, win_dim=window_dim, pres_dur=0, luminance=0)
 		marker = pdm.PhotodiodeMarker()
 
-		#making experimentHandler, and trials from rand_trials 
-		trials_subset = self.rand_trials()
+		#making experimentHandler, and trials from rand_trials_sample
+		trials_subset = self.rand_trials_sample()
 
 		exp = data.ExperimentHandler(name='testExp', savePickle=True, saveWideText=True, dataFileName='experiment')
 
@@ -89,60 +135,59 @@ class Experiment():
 
 		#load values into the buffer before the trial starts...
 		params_list = get_params(trials)
-		
-		if(CONNECT):
-			set_params(params_list, syn) 
-
+		print("Params" ,params_list)
+	
 	#	event.waitKeys(keyList='space') #could put this in to have the actual experiment (1st pdm flash, etc.) start on keypress
 
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
 		for trial in trials:
+
 			inter=trial['ISI']
 
 			#initial marker flash for each trial
-			for n in range(0, self.pre_stim*60):
-				if n<10: #draw the marker for 10 frames
-					marker.draw_marker(window)
+			for n in range(0, 10): #draw for 10 frames
+				marker.draw_marker(window)
 					
 			window.flip()
 
 			# jitter = wait time before first stimulus: 
-			core.wait(self.jitter/1000.0) 
+			core.wait(self.JITTER/1000.0) 
 			#maximum delay if presenting auditory before visual plus maybe 30-50% ~250ms + 125 = 375ms
-			sleep_time = (self.jitter*1.5)/1000.0
+			sleep_time = (self.JITTER*1.5)/1000.0
 			time.sleep(sleep_time) 
 
-			#done in synapse_experiment?
-		#	if(CONNECT):
-		#			#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
-		#			syn.setParameterValue('aStim2', 'WaveAmp', trial['wave_amp'])
-		#			syn.setParameterValue('aStim2', 'WaveFreq', trial['wave_freq'])
-		#			syn.setParameterValue('aStim2', 'PulseDur', trial['pulse_dur'])
-		#			syn.setParameterValue('aStim2', 'StimID', trial['stimulus']+1) 
+			if(CONNECT):
+				#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
+				set_params(params_list, syn, trials.thisTrialN) 
 
 
 			if(trial['stimulus']==0): #auditory stim only
-
+				print("=============================\n")
 				print("===Auditory component only===\n *Play tone at %d dB*\n" %trial['wave_amp'])
+				trial['delay']=None #set all visual parameters to None
+				trial["flash_dur"]=None
+				trial["luminance"]=None 
 				trial['delay']=None
+				#wait while the audio is playing
+				core.wait(trial['pulse_dur']/1000.0)
+
 
 			elif(trial['stimulus']==1): #visual stim only 
-				trial['wave_freq']=None  # set all audio-related parameters to none 
-				trial['pulse_dur']=None
-				trial['wave_amp']=None
-				trial['delay']=None
+
+				trial['wave_freq'], trial['pulse_dur'], trial['wave_amp'], trial['delay'] = None  # set all audio-related parameters to none 
+
 				if(CONNECT):
 					#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
 					syn.setParameterValue('aStim2', 'WaveAmp', 0) # set all values to 0  bc no auditory
 					syn.setParameterValue('aStim2', 'WaveFreq', 0)
 					syn.setParameterValue('aStim2', 'PulseDur', 0)
 
-
+				print("===========================\n")
 				print("===Visual component only===\n")
-				dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
+				dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms -> div by 1000 since flash takes in seconds
 				lum = trial['luminance'] # luminance
 
-				flash.pres_dur=dur #pres_dur in ms -> div by 1000 since flash takes in seconds
+				flash.pres_dur=dur
 				flash.luminance=lum
 
 				print("Luminance: ", lum)
@@ -155,6 +200,7 @@ class Experiment():
 			elif(trial['stimulus']==2): #A+V stim
 				#option 1: Audio first: delay -
 				if(trial['delay'] < 0): #delay = time (ms) between A and V within the trial
+					print("=================================================\n")
 					print("===Auditory and visual components on: A first ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
 
 
@@ -183,7 +229,7 @@ class Experiment():
 
 				#option 2: Visual first: delay +
 				if(trial['delay'] > 0):
-
+					print("=================================================\n")
 					print("===Auditory and visual components on: V first ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
 					dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
 					lum = trial['luminance'] # luminance
@@ -206,8 +252,8 @@ class Experiment():
 
 
 				#option 3: Simultaneous: delay 0 
-				# TODO: add a second flash BEFORE the stimulus? 
 				if(trial['delay'] == 0):
+					print("======================================================\n")
 					print("===Auditory and visual components on: Simultaneous ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
 					dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
 					lum = trial['luminance'] # luminance
@@ -216,19 +262,25 @@ class Experiment():
 					flash.luminance=lum
 
 					print("Luminance: \n", lum)
+
 					#present the stimulus
 					marker.draw_marker(window)
 					flash.flash(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
 			
-			print("Waiting ISI Time: ", inter, '\n')
-			core.wait(inter-(self.jitter/1000.0)) #inter stimulus interval = time between successive presentations
+			print("Waiting system delay time...", self.SYSTEM_DELAY, " ms \n")
+			time.sleep(self.SYSTEM_DELAY/1000.0)
+
+			print("Waiting ISI Time: ", inter, 's \n')
+			core.wait(inter-(self.JITTER/1000.0)) #inter stimulus interval = time between successive presentations
 			window.flip()
 
 			exp.nextEntry()
 
 
 def main():
+
+
 	#Parameters:
 	numTrials = 10
 	ISI = [2.0, 3.0, 4.0, 5.0] #ISI in seconds: time between trials
@@ -236,7 +288,7 @@ def main():
 
 
 	#flash parameters
-	flash_dur = [400.0, 200.0, 300.0] #flash durs in ms (100 ms, 200 ms) CHANGE TO THIS SYSTEM
+	flash_dur = [400.0, 200.0, 300.0] #flash durs in ms 
 	luminance = [[1,1,1], [.86, .86, .86], [0,.1,1]] #white , grayish, purple just for testing
 
 	#auditory parameters: input them as the actual desired unit (Hz, ms, dB) -> will get converted if needed within the code.
@@ -248,7 +300,6 @@ def main():
 			1: "visual_only",
 			2: "A+V"
 		}		
-
 
 	exper = Experiment(numTrials=numTrials, ISI=ISI, flash_dur=flash_dur, luminance=luminance, wave_freq=frequency,pulse_dur=duration, wave_amp=sound_levels, stimulus=stims, delay=delay)
 	exper.run_experiment()

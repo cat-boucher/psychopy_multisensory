@@ -1,16 +1,14 @@
 import numpy as np
 import tdt
-#from AV_experiment import Experiment
+#https://www.tdt.com/docs/synapse/gizmos/creating-user-gizmos/#user-interface-widgets
+#https://www.tdt.com/docs/synapse/gizmos/delay/
 
 def syn_connect(IP='192.168.1.37'):
 	# create Synapse API connection
 	syn = tdt.SynapseAPI(IP)
-
 	# switch into a runtime mode (Preview in this case)
 	if syn.getMode() < 1: syn.setMode(2)
-
 	return syn
-
 	
 def param_info():
 
@@ -75,8 +73,6 @@ def param_info():
 
 
 
-
-
 # function to get all parameter info ahead of time from AV_experiment. tr_handler is the trial object from av_experiment ("trials", or any trialHandler type)
 # this fn allows us to access the variables in the trialHandler through synapse api
 def get_params(tr_handler): #param_list = list of the parameters of interest...ex.[]
@@ -93,7 +89,6 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 					"delay": []
 	}
 
-
 	for i in range(0, n_trials):
 		for key, value in params_dict.items():
 		#	params_dict[key][i] = tr_handler.trialList[i][key]
@@ -104,11 +99,15 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 
 #function to write all parameters from the buffer to the trial in synapse, using the dict created in get_params
 #use syn_connect to get the syn argument
-def set_params(param_dict, syn):
-	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'])
-	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq'])
-	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'])
-	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus']+1) 
+def set_params(param_dict, syn, cur_trial):
+	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'][cur_trial])
+	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq'][cur_trial])
+	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'][cur_trial])
+	syn.setParameterValues('Delay1', 'Delay', param_dict['delay'][cur_trial]) # this sets the delay btw presentation of 
+
+	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus'][cur_trial]+1) 
+
+
 
 	#where to write the other params??
 
