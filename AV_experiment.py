@@ -5,11 +5,14 @@ import numpy as np
 import PhotodiodeMarker as pdm
 import time
 import tdt
-from synapse_experiment import get_params, set_params, syn_connect
+from synapse_experiment import get_params, set_params, syn_connect, set_schmitt
+#from psychopy import logging
+#logging.console.setLevel(logging.INFO)
+
 
 
 class Experiment():
-	def __init__(self, numTrials=None, ISI=None, flash_dur=None, luminance=None, wave_freq=None,pulse_dur=None, wave_amp=None, stimulus=None, delay=None):
+	def __init__(self, numTrials=None, ISI=None, flash_dur=None, luminance=None, wave_freq=None,pulse_dur=None, wave_amp=None, stimulus=None, delay=None, SYN_CONNECTED=False):
 		"""	
 		Experiment: class to run a multisensory integration experiment with custom timing and stimulus presentation.
 		-----------
@@ -66,7 +69,7 @@ class Experiment():
 		#hard-coded timings within the code
 		self.JITTER = 250.0  #250 ms jitter 
 		self.SYSTEM_DELAY = 200.0 # (temporary) 200 ms delay btw stimulus computer and recording computer. TODO: change this once the real timing is recorded in lab
-
+		self.SYN_CONNECTED = SYN_CONNECTED
 
 	
 	def rand_trials_sample(self):
@@ -100,15 +103,13 @@ class Experiment():
 
 		Note:
 		----
-		- make sure to set CONNECT = True when actually connected to Synapse
+		- make sure to set SYN_CONNECTED = True when actually connected to Synapse
 
 		- to make sure the code runs smoothly, best to comment out all print statements before running an experiment 
 
 		"""
 
-
-		CONNECT = False
-		if(CONNECT):
+		if(self.SYN_CONNECTED):
 			# Connect to Synapse & switch to preview mode
 			syn = syn_connect('192.168.1.37')
 
@@ -135,9 +136,11 @@ class Experiment():
 
 		#load values into the buffer before the trial starts...
 		params_list = get_params(trials)
-		print("Params" ,params_list)
-	
+		
+		if(self.SYN_CONNECTED):
+			syn.setMode(3) # switch to record mode
 	#	event.waitKeys(keyList='space') #could put this in to have the actual experiment (1st pdm flash, etc.) start on keypress
+
 
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
 		for trial in trials:
@@ -150,33 +153,50 @@ class Experiment():
 					
 			window.flip()
 
-			# jitter = wait time before first stimulus: 
-			core.wait(self.JITTER/1000.0) 
+			"""
+			print("Waiting system delay time...", self.SYSTEM_DELAY, " ms \n")
+			time.sleep(self.SYSTEM_DELAY/1000.0)
+			 
 			#maximum delay if presenting auditory before visual plus maybe 30-50% ~250ms + 125 = 375ms
 			sleep_time = (self.JITTER*1.5)/1000.0
 			time.sleep(sleep_time) 
 
-			if(CONNECT):
+			"""
+
+			if(self.SYN_CONNECTED):
 				#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
 				set_params(params_list, syn, trials.thisTrialN) 
+				set_schmitt()
 
 
-			if(trial['stimulus']==0): #auditory stim only
+			stim_code = trial['stimulus']
+
+			if(stim_code == 0 or stim_code == 2): #auditory stim only || A+V 
+				core.wait((self.JITTER + self.SYSTEM_DELAY)/1000.0)
+
+			elif(stim_code == 1):#visual stim only
+				core.wait(self.JITTER/1000.0)		
+
+
+			if(stim_code==0): #auditory stim only
 				print("=============================\n")
 				print("===Auditory component only===\n *Play tone at %d dB*\n" %trial['wave_amp'])
-				trial['delay']=None #set all visual parameters to None
-				trial["flash_dur"]=None
-				trial["luminance"]=None 
-				trial['delay']=None
+				trial['delay'] = None #set all visual parameters to None
+				trial["flash_dur"] = None
+				trial["luminance"] = None 
+				trial['delay'] = None
 				#wait while the audio is playing
 				core.wait(trial['pulse_dur']/1000.0)
 
 
-			elif(trial['stimulus']==1): #visual stim only 
+			elif(stim_code==1): #visual stim only 
 
-				trial['wave_freq'], trial['pulse_dur'], trial['wave_amp'], trial['delay'] = None  # set all audio-related parameters to none 
+				trial['wave_freq'] = None
+				trial['pulse_dur'] = None
+				trial['wave_amp'] = None
+				trial['delay'] = None  # set all audio-related parameters to none 
 
-				if(CONNECT):
+				if(self.SYN_CONNECTED):
 					#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
 					syn.setParameterValue('aStim2', 'WaveAmp', 0) # set all values to 0  bc no auditory
 					syn.setParameterValue('aStim2', 'WaveFreq', 0)
@@ -197,7 +217,7 @@ class Experiment():
 				window.flip()
 
 
-			elif(trial['stimulus']==2): #A+V stim
+			elif(stim_code==2): #A+V stim
 				#option 1: Audio first: delay -
 				if(trial['delay'] < 0): #delay = time (ms) between A and V within the trial
 					print("=================================================\n")
@@ -218,7 +238,6 @@ class Experiment():
 					flash.pres_dur=dur
 					flash.luminance=lum
 
-					print(trial['delay'])
 
 					print("Luminance: \n", lum)
 					#present the stimulus
@@ -267,9 +286,6 @@ class Experiment():
 					marker.draw_marker(window)
 					flash.flash(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
-			
-			print("Waiting system delay time...", self.SYSTEM_DELAY, " ms \n")
-			time.sleep(self.SYSTEM_DELAY/1000.0)
 
 			print("Waiting ISI Time: ", inter, 's \n')
 			core.wait(inter-(self.JITTER/1000.0)) #inter stimulus interval = time between successive presentations
@@ -284,17 +300,17 @@ def main():
 	#Parameters:
 	numTrials = 10
 	ISI = [2.0, 3.0, 4.0, 5.0] #ISI in seconds: time between trials
-	delay = [-300.0, -200.0, -50.0, 0.0, 50.0, 200.0, 300.0] # *in ms -> gets converted to s in the code* ; time between presentation of A + V within a trial. (-) A first, (+) V first 
+	delay = [1.0, 40.0, 80.0, 120.0, 160.0, 200.0, 240.0, -1.0, -40.0, -80.0, -120.0, -160.0, -200.0, -240.0] # *in ms -> gets converted to s in the code* ; time between presentation of A + V within a trial. (-) A first, (+) V first 
 
 
 	#flash parameters
-	flash_dur = [400.0, 200.0, 300.0] #flash durs in ms 
+	flash_dur = [400.0, 200.0, 300.0, 50.0] #flash durs in ms 
 	luminance = [[1,1,1], [.86, .86, .86], [0,.1,1]] #white , grayish, purple just for testing
 
 	#auditory parameters: input them as the actual desired unit (Hz, ms, dB) -> will get converted if needed within the code.
-	frequency = [1.1, 2.2, 3.3, 4.4] #Hz;waveFreq in TDT
-	duration = [100.0, 200.0, 300.0, 400.0] # in ms; pulseDur in TDT
-	sound_levels = [20.0, 40.0, 60.0, 80.0] # dB; waveAmp in TDT
+	frequency = [1.1, 2.2, 3.3, 4.4] #Hz; waveFreq in TDT
+	duration = [50.0, 100.0, 200.0, 300.0, 400.0] # in ms; pulseDur in TDT
+	sound_levels = [15.0, 20.0, 25.0, 35.0, 55.0, 65.0] # dB; waveAmp in TDT
 
 	stims={ 0: "auditory_only", 
 			1: "visual_only",
