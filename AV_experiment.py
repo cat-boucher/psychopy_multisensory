@@ -166,7 +166,7 @@ class Experiment():
 			if(self.SYN_CONNECTED):
 				#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
 				set_params(params_list, syn, trials.thisTrialN) 
-				set_schmitt()
+				set_schmitt(lockout_time=self.SYSTEM_DELAY) # set the system delay lockout time 
 
 
 			stim_code = trial['stimulus']

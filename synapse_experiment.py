@@ -120,15 +120,16 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 	return params_dict #returns a parameter dict of all ISIs lined up, flash_dur, ...etc. 
 
 
-#function to write all parameters from the buffer to the trial in synapse, using the dict created in get_params
 #use syn_connect to get the syn argument
 def set_params(param_dict, syn, cur_trial):
-	"""
-	Args: 
-	-----
+	"""Function to write all parameters from the buffer to the trial in synapse, using the dict created in get_params
 
-	Returns: 
-	--------
+	Args:
+	-----
+	param_dict : dictionary of all parameters as lists (created using get_params() )
+	syn : Synapse API object (from syn_connect() function)
+	cur_trial : 0-based index of current trial
+
 
 	"""
 
@@ -139,11 +140,15 @@ def set_params(param_dict, syn, cur_trial):
 	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus'][cur_trial]+1) # param_dict[stimulus] is 0-based indexing, but StimId is 1-based (so +1) 
 
 
-def set_schmitt():
+def set_schmitt(lockout_time):
 	""" 
 	Function: sets the Schmitt lockout
 
+	Args:
+	----
+	lockout_time : equal to the amt of time we want the schmitt trigger to be locked out for; in ms
+
 	"""
-	syn.setParameterValues('State', 'Lockout', 1) # set the lockout value to be 1; so that the Schmitt locks out for Thi + Tlo
+	syn.setParameterValues('State', 'lockout', lockout_time) # set the lockout value to be 1; so that the Schmitt locks out for Thi + Tlo
 
 
