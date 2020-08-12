@@ -121,7 +121,7 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 
 
 #use syn_connect to get the syn argument
-def set_params(param_dict, syn, cur_trial):
+def set_stim_params(param_dict, syn, cur_trial):
 	"""Function to write all parameters from the buffer to the trial in synapse, using the dict created in get_params
 
 	Args:
@@ -130,7 +130,6 @@ def set_params(param_dict, syn, cur_trial):
 	syn : Synapse API object (from syn_connect() function)
 	cur_trial : 0-based index of current trial
 
-
 	"""
 
 	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'][cur_trial]) 
@@ -138,9 +137,18 @@ def set_params(param_dict, syn, cur_trial):
 	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'][cur_trial])
 	syn.setParameterValues('Delay1', 'Delay', param_dict['delay'][cur_trial]) # this sets the delay btw presentation of stimulus and 
 	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus'][cur_trial]+1) # param_dict[stimulus] is 0-based indexing, but StimId is 1-based (so +1) 
+#	syn.setParameterValues('State', "Manual{1...2}", param_dict['stimulus'][cur_trial]+1) # also set the "Manual" (button) to be equal to the StimId for now
+
+def set_stimcode(syn, stimcode):
+	"""Function to set the StimCode parameter; eventually will have support for multiple 
+
+	"""
+	syn.setParameterValues('aStim2', 'StimCode', stimcode)
+	
 
 
-def set_schmitt(lockout_time):
+
+def set_schmitt(syn, lockout_time):
 	""" 
 	Function: sets the Schmitt lockout
 
@@ -149,6 +157,6 @@ def set_schmitt(lockout_time):
 	lockout_time : equal to the amt of time we want the schmitt trigger to be locked out for; in ms
 
 	"""
-	syn.setParameterValues('State', 'lockout', lockout_time) # set the lockout value to be 1; so that the Schmitt locks out for Thi + Tlo
+	syn.setParameterValues('State', 'lockout', lockout_time) # lockout time before schmitt triggers again
 
 

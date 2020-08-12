@@ -5,7 +5,7 @@ import numpy as np
 import PhotodiodeMarker as pdm
 import time
 import tdt
-from synapse_experiment import get_params, set_params, syn_connect, set_schmitt
+import synapse_experiment as synex
 #from psychopy import logging
 #logging.console.setLevel(logging.INFO)
 
@@ -111,7 +111,7 @@ class Experiment():
 
 		if(self.SYN_CONNECTED):
 			# Connect to Synapse & switch to preview mode
-			syn = syn_connect('192.168.1.37')
+			syn = synex.syn_connect('192.168.1.37')
 
 		#defining the window
 		window=visual.Window(size=window_dim, 
@@ -135,7 +135,7 @@ class Experiment():
 		exp.addLoop(trials)
 
 		#load values into the buffer before the trial starts...
-		params_list = get_params(trials)
+		params_list = synex.get_params(trials)
 		
 		if(self.SYN_CONNECTED):
 			syn.setMode(3) # switch to record mode
@@ -163,13 +163,13 @@ class Experiment():
 
 			"""
 
+			stim_code = trial['stimulus']
+
 			if(self.SYN_CONNECTED):
 				#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
-				set_params(params_list, syn, trials.thisTrialN) 
-				set_schmitt(lockout_time=self.SYSTEM_DELAY) # set the system delay lockout time 
-
-
-			stim_code = trial['stimulus']
+				synex.set_stim_params(params_list, syn, trials.thisTrialN) 
+				synex.set_schmitt(syn, lockout_time=self.SYSTEM_DELAY) # set the system delay lockout time 
+				synex.set_stimcode(syn, stim_code)
 
 			if(stim_code == 0 or stim_code == 2): #auditory stim only || A+V 
 				core.wait((self.JITTER + self.SYSTEM_DELAY)/1000.0)
