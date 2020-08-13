@@ -76,14 +76,14 @@ class Experiment():
 		"""
 		generates a randomized list of trial/stimulus parameters, of length numTrials
 		"""
-		factors={"ISI": self.ISI,
-				"flash_dur": self.flash_dur,
+		factors={"ISI_s": self.ISI,
+				"flash_dur_ms": self.flash_dur,
 				"luminance": self.luminance,
-				"wave_freq": self.wave_freq, #waveFreq = freq of the tone
-				"pulse_dur": self.pulse_dur, #pulseDur = length of time the tone is played
-				"wave_amp": self.wave_amp, #waveAmp = sound levels
+				"wave_freq_Hz": self.wave_freq, #waveFreq = freq of the tone
+				"pulse_dur_ms": self.pulse_dur, #pulseDur = length of time the tone is played
+				"wave_amp_dB": self.wave_amp, #waveAmp = sound levels
 				"stimulus": self.stimulus,
-				"delay": self.delay # delay between presenting A and V
+				"delay_ms": self.delay # delay between presenting A and V
 				}
 
 		stimList = data.createFactorialTrialList(factors)
@@ -128,6 +128,18 @@ class Experiment():
 		#making experimentHandler, and trials from rand_trials_sample
 		trials_subset = self.rand_trials_sample()
 
+		"""
+		data_info={"ISI": 's',
+				"flash_dur": 'ms',
+				"luminance": 'RGB ranging from -1 (black) to 1 (white)',
+				"wave_freq": 'hz', #waveFreq = freq of the tone
+				"pulse_dur": 'ms', #pulseDur = length of time the tone is played
+				"wave_amp": 'dB', #waveAmp = sound levels
+				"stimulus": '0 (A only), 1 (V only) , or 2 (A+V)',
+				"delay": 'ms' # delay between presenting A and V
+				}
+		"""
+
 		exp = data.ExperimentHandler(name='testExp', savePickle=True, saveWideText=True, dataFileName='experiment')
 
 		trials = data.TrialHandler(trialList=trials_subset, nReps=1, method='sequential') # since already randomized we can go ahead and use "sequential" here...
@@ -142,10 +154,13 @@ class Experiment():
 	#	event.waitKeys(keyList='space') #could put this in to have the actual experiment (1st pdm flash, etc.) start on keypress
 
 
+		expClock = core.Clock()
+		expClock.reset()
+
 		#the experiment loop! 0: Auditory only; 1: Visual only; 2: A+V
 		for trial in trials:
 
-			inter=trial['ISI']
+			inter=trial['ISI_s']
 
 			#initial marker flash for each trial
 			for n in range(0, 10): #draw for 10 frames
@@ -154,7 +169,7 @@ class Experiment():
 			window.flip()
 
 			"""
-			print("Waiting system delay time...", self.SYSTEM_DELAY, " ms \n")
+			#print("Waiting system delay time...", self.SYSTEM_DELAY, " ms \n")
 			time.sleep(self.SYSTEM_DELAY/1000.0)
 			 
 			#maximum delay if presenting auditory before visual plus maybe 30-50% ~250ms + 125 = 375ms
@@ -179,22 +194,24 @@ class Experiment():
 
 
 			if(stim_code==0): #auditory stim only
-				print("=============================\n")
-				print("===Auditory component only===\n *Play tone at %d dB*\n" %trial['wave_amp'])
-				trial['delay'] = None #set all visual parameters to None
-				trial["flash_dur"] = None
+				#print("=============================\n")
+				#print("===Auditory component only===\n *Play tone at %d dB*\n" %trial['wave_amp_dB'])
+				trial['delay_ms'] = None #set all visual parameters to None
+				trial["flash_dur_ms"] = None
 				trial["luminance"] = None 
-				trial['delay'] = None
+				trial['delay_ms'] = None
 				#wait while the audio is playing
-				core.wait(trial['pulse_dur']/1000.0)
+				exp.addData('Aud_onset', expClock.getTime())
+				core.wait(trial['pulse_dur_ms']/1000.0)
+				
 
 
 			elif(stim_code==1): #visual stim only 
 
-				trial['wave_freq'] = None
-				trial['pulse_dur'] = None
-				trial['wave_amp'] = None
-				trial['delay'] = None  # set all audio-related parameters to none 
+				trial['wave_freq_Hz'] = None
+				trial['pulse_dur_ms'] = None
+				trial['wave_amp_dB'] = None
+				trial['delay_ms'] = None  # set all audio-related parameters to none 
 
 				if(self.SYN_CONNECTED):
 					#set the auditory value decided by Psychopy in Synapse: WaveAmp, WaveFreq, Delay (?)
@@ -202,16 +219,18 @@ class Experiment():
 					syn.setParameterValue('aStim2', 'WaveFreq', 0)
 					syn.setParameterValue('aStim2', 'PulseDur', 0)
 
-				print("===========================\n")
-				print("===Visual component only===\n")
-				dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms -> div by 1000 since flash takes in seconds
+				#print("===========================\n")
+				#print("===Visual component only===\n")
+				dur = (trial['flash_dur_ms'])/1000.0 #pres. dur. in ms -> div by 1000 since flash takes in seconds
 				lum = trial['luminance'] # luminance
 
 				flash.pres_dur=dur
 				flash.luminance=lum
 
-				print("Luminance: ", lum)
+				#print("Luminance: ", lum)
 				#present the stimulus
+				exp.addData('Vis_onset', expClock.getTime()) #record visual onset time
+
 				marker.draw_marker(window)
 				flash.flash(window)
 				window.flip()
@@ -219,27 +238,32 @@ class Experiment():
 
 			elif(stim_code==2): #A+V stim
 				#option 1: Audio first: delay -
-				if(trial['delay'] < 0): #delay = time (ms) between A and V within the trial
-					print("=================================================\n")
-					print("===Auditory and visual components on: A first ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
+				if(trial['delay_ms'] < 0): #delay = time (ms) between A and V within the trial
+					#print("=================================================\n")
+					#print("===Auditory and visual components on: A first ===\n *Play tone at %d dB*\n" %trial['wave_amp_dB'])
 
+					# add auditory onset data
+					exp.addData('Aud_onset', expClock.getTime())
 
 					# wait while the audio is going + the delay btw stimuli
-					total_wait = (abs(trial['delay'])+trial['pulse_dur'])/1000.0
-					print("Waiting for tone to play: " ,trial['pulse_dur'] , "ms")
-					print("Waiting (stimulus delay): " ,(trial['delay']), " ms")
+					total_wait = (abs(trial['delay_ms'])+trial['pulse_dur_ms'])/1000.0
+					#print("Waiting for tone to play: " ,trial['pulse_dur_ms'] , "ms")
+					#print("Waiting (stimulus delay): " ,(trial['delay_ms']), " ms")
 
 					core.wait(total_wait)
 
 
-					dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
+					dur = (trial['flash_dur_ms'])/1000.0 #pres. dur. in ms
 					lum = trial['luminance'] # luminance
 
 					flash.pres_dur=dur
 					flash.luminance=lum
 
 
-					print("Luminance: \n", lum)
+					#print("Luminance: \n", lum)
+					# Record visual onset
+					exp.addData('Vis_onset', expClock.getTime())
+
 					#present the stimulus
 					marker.draw_marker(window)
 					flash.flash(window)
@@ -247,47 +271,56 @@ class Experiment():
 			
 
 				#option 2: Visual first: delay +
-				if(trial['delay'] > 0):
-					print("=================================================\n")
-					print("===Auditory and visual components on: V first ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
-					dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
+				if(trial['delay_ms'] > 0):
+					#print("=================================================\n")
+					#print("===Auditory and visual components on: V first ===\n *Play tone at %d dB*\n" %trial['wave_amp_dB'])
+					dur = (trial['flash_dur_ms'])/1000.0 #pres. dur. in ms
 					lum = trial['luminance'] # luminance
 
 					flash.pres_dur=dur
 					flash.luminance=lum
 
 
-					print("Luminance: \n", lum)
+					#print("Luminance: \n", lum)
+					exp.addData('Vis_onset', expClock.getTime()) # visual onset data
+
 					#present the stimulus
 					marker.draw_marker(window)
 					flash.flash(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
 
 					#convert delay to seconds
-					total_wait = (trial['delay']+trial['pulse_dur'])/1000.0 # after visual presented, need to wait the delay btw stimuli + the duration of the audio pulse
-					print("Waiting (stimulus delay): " ,trial['delay'], " ms")
-					print("Waiting for tone to play: " ,trial['pulse_dur'], "ms")
-					core.wait(total_wait)
+				#	total_wait = (trial['delay_ms']+trial['pulse_dur_ms'])/1000.0 # after visual presented, need to wait the delay btw stimuli + the duration of the audio pulse
+					#print("Waiting (stimulus delay): " ,trial['delay_ms'], " ms")
+					core.wait(trial['delay_ms']/1000.0)
+
+					exp.addData('Aud_onset', expClock.getTime())
+
+					#print("Waiting for tone to play: " ,trial['pulse_dur_ms'], "ms")
+					core.wait(trial['pulse_dur_ms']/1000.0)
 
 
 				#option 3: Simultaneous: delay 0 
-				if(trial['delay'] == 0):
-					print("======================================================\n")
-					print("===Auditory and visual components on: Simultaneous ===\n *Play tone at %d dB*\n" %trial['wave_amp'])
-					dur = (trial['flash_dur'])/1000.0 #pres. dur. in ms
+				if(trial['delay_ms'] == 0):
+					#print("======================================================\n")
+					#print("===Auditory and visual components on: Simultaneous ===\n *Play tone at %d dB*\n" %trial['wave_amp_dB'])
+					dur = (trial['flash_dur_ms'])/1000.0 #pres. dur. in ms
 					lum = trial['luminance'] # luminance
 
 					flash.pres_dur=dur
 					flash.luminance=lum
 
-					print("Luminance: \n", lum)
+					#print("Luminance: \n", lum)
+
+					exp.addData('Aud_onset', expClock.getTime())
+					exp.addData('Vis_onset', expClock.getTime())
 
 					#present the stimulus
 					marker.draw_marker(window)
 					flash.flash(window)
 					window.flip() #TODO: change to be timed by frame instead of seconds
 
-			print("Waiting ISI Time: ", inter, 's \n')
+			#print("Waiting ISI Time: ", inter, 's \n')
 			core.wait(inter-(self.JITTER/1000.0)) #inter stimulus interval = time between successive presentations
 			window.flip()
 
@@ -317,7 +350,7 @@ def main():
 			2: "A+V"
 		}		
 
-	exper = Experiment(numTrials=numTrials, ISI=ISI, flash_dur=flash_dur, luminance=luminance, wave_freq=frequency,pulse_dur=duration, wave_amp=sound_levels, stimulus=stims, delay=delay)
+	exper = Experiment(numTrials=numTrials, ISI=ISI, flash_dur=flash_dur, luminance=luminance, wave_freq=frequency,pulse_dur=duration, wave_amp=sound_levels, stimulus=stims, delay=delay, SYN_CONNECTED=False)
 	exper.run_experiment()
 
 if __name__ == '__main__':

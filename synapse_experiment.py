@@ -102,14 +102,14 @@ def get_params(tr_handler): #param_list = list of the parameters of interest...e
 	n_trials = tr_handler.nTotal # total number of trials
 	#dictionary to store all the parameters as arrays ...(buffers)
 
-	params_dict = {"ISI": [],
-					"flash_dur":  [], #flash dur
+	params_dict = {"ISI_s": [],
+					"flash_dur_ms":  [], #flash dur
 					"luminance":  [], #luminance
-					"wave_freq": [],
-					"pulse_dur":  [], #pulse dur
-					"wave_amp" : [],
+					"wave_freq_Hz": [],
+					"pulse_dur_ms":  [], #pulse dur
+					"wave_amp_dB" : [],
 					"stimulus": [],
-					"delay": []
+					"delay_ms": []
 	}
 
 	for i in range(0, n_trials):
@@ -132,10 +132,10 @@ def set_stim_params(param_dict, syn, cur_trial):
 
 	"""
 
-	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp'][cur_trial]) 
-	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq'][cur_trial])
-	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur'][cur_trial])
-	syn.setParameterValues('Delay1', 'Delay', param_dict['delay'][cur_trial]) # this sets the delay btw presentation of stimulus and 
+	syn.setParameterValues('aStim2', 'WaveAmp', param_dict['wave_amp_dB'][cur_trial]) 
+	syn.setParameterValues('aStim2', 'WaveFreq', param_dict['wave_freq_Hz'][cur_trial])
+	syn.setParameterValues('aStim2', 'PulseDur', param_dict['pulse_dur_ms'][cur_trial])
+	syn.setParameterValues('Delay1', 'Delay', param_dict['delay_ms'][cur_trial]) # this sets the delay btw presentation of stimulus and 
 	syn.setParameterValues('aStim2', 'StimID', param_dict['stimulus'][cur_trial]+1) # param_dict[stimulus] is 0-based indexing, but StimId is 1-based (so +1) 
 #	syn.setParameterValues('State', "Manual{1...2}", param_dict['stimulus'][cur_trial]+1) # also set the "Manual" (button) to be equal to the StimId for now
 
